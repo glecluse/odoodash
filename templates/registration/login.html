@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connexion - OdooDash</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        /* Style pour améliorer le focus sur les inputs */
+        input:focus {
+            border-color: #4f46e5; /* indigo-600 */
+            box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.5); /* Ombre légère indigo */
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen px-4">
+    <div class="w-full max-w-md bg-white p-8 rounded-lg shadow-xl">
+        <h2 class="text-2xl font-bold text-center text-gray-800 mb-8">OdooDash - Connexion</h2>
+
+        {# Affiche les erreurs générales du formulaire (ex: utilisateur/mdp incorrect) #}
+        {% if form.errors %}
+            <div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-6" role="alert">
+                <strong class="font-bold">Erreur !</strong>
+                <ul class="mt-1 list-disc list-inside text-sm">
+                {% for field, error_list in form.errors.items %}
+                    {% for error in error_list %}
+                        <li>
+                            {% if field != '__all__' %}{{ field|title }}: {% endif %}{{ error }}
+                        </li>
+                    {% endfor %}
+                {% endfor %}
+                </ul>
+                 <p class="text-sm mt-2">Veuillez vérifier votre nom d'utilisateur et votre mot de passe.</p>
+            </div>
+        {% endif %}
+
+        {# Message si l'utilisateur a été redirigé vers la connexion #}
+        {% if next %}
+            {% if user.is_authenticated %}
+                <p class="text-sm text-center text-yellow-700 mb-4">Votre compte n'a pas accès à cette page. Pour continuer, veuillez vous connecter avec un compte ayant accès.</p>
+            {% else %}
+                <p class="text-sm text-center text-yellow-700 mb-4">Veuillez vous connecter pour accéder à la page demandée.</p>
+            {% endif %}
+        {% endif %}
+
+        {# Le formulaire pointe vers l'URL nommée 'login' fournie par django.contrib.auth.urls #}
+        <form method="post" action="{% url 'login' %}">
+            {% csrf_token %} {# Protection CSRF obligatoire pour les formulaires POST #}
+
+            <div class="mb-5">
+                <label for="id_username" class="block text-gray-700 text-sm font-bold mb-2">Nom d'utilisateur :</label>
+                {# Utilise le widget par défaut de Django pour ce champ #}
+                <input type="text" name="username" autofocus autocapitalize="none" autocomplete="username" maxlength="150" required id="id_username"
+                       class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+            </div>
+
+            <div class="mb-6">
+                <label for="id_password" class="block text-gray-700 text-sm font-bold mb-2">Mot de passe :</label>
+                 {# Utilise le widget par défaut de Django pour ce champ #}
+                <input type="password" name="password" autocomplete="current-password" required id="id_password"
+                       class="shadow-sm appearance-none border rounded w-full py-2 px-3 text-gray-700 mb-3 leading-tight focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent">
+                {# Lien pour la réinitialisation de mot de passe (nécessite configuration supplémentaire) #}
+                {# <a class="inline-block align-baseline font-bold text-sm text-indigo-500 hover:text-indigo-800" href="{% url 'password_reset' %}">
+                {#    Mot de passe oublié ?
+                {# </a> #}
+            </div>
+
+            <div class="flex items-center justify-center">
+                <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-4 rounded focus:outline-none focus:shadow-outline transition duration-150 ease-in-out" type="submit">
+                    Se connecter
+                </button>
+            </div>
+
+            {# Champ caché pour rediriger l'utilisateur après la connexion #}
+            {# --- CORRECTION ICI : Utiliser la valeur littérale de LOGIN_REDIRECT_URL --- #}
+            <input type="hidden" name="next" value="{{ next|default:'/app/dashboard/' }}">
+            {# --- FIN CORRECTION --- #}
+        </form>
+    </div>
+</body>
+</html>

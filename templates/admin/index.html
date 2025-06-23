@@ -1,0 +1,46 @@
+{% extends "admin/index.html" %}
+{% load i18n %}
+{% load static %} {# Nécessaire pour les URLs statiques si vous en utilisez #}
+
+{% block content_title %}{% if title %}{{ title }}{% else %}{% translate 'Site administration' %}{% endif %}{% endblock %}
+
+{# Surcharge du bloc 'sidebar' pour ajouter notre bouton et un lien vers les statuts #}
+{% block sidebar %}
+    <div id="content-related">
+        <div class="module" id="custom-actions-module">
+            <h2>{% translate 'Actions Personnalisées' %}</h2>
+            <div class="actionlist">
+                <div class="actions">
+                    {# Formulaire pour appeler notre vue via POST #}
+                    <form action="{% url 'core:trigger_fetch_indicators' %}" method="post" style="margin-bottom: 10px;">
+                        {% csrf_token %}
+                        <button type="submit" class="button">
+                            Lancer l'Extraction des Indicateurs
+                        </button>
+                    </form>
+                    <p class="help" style="margin-bottom: 15px;">Cliquez pour mettre à jour les données depuis Odoo.</p>
+
+                    {# --- NOUVEAU LIEN AJOUTÉ ICI --- #}
+                    <h3 style="margin-top: 1em; font-size: 1.1em; font-weight: bold;">{% translate 'Statuts des Connexions Clients' %}</h3>
+                    <ul class="actionlist">
+                        <li>
+                            {# Lien vers la liste des ClientOdooStatus, filtrée pour les échecs #}
+                            <a href="{% url 'admin:core_clientodoostatus_changelist' %}?connection_successful__exact=0" class="link">
+                                Voir les clients avec échec de connexion
+                            </a>
+                            <p class="help">Affiche les clients pour lesquels la dernière tentative de connexion a échoué.</p>
+                        </li>
+                        <li>
+                            <a href="{% url 'admin:core_clientodoostatus_changelist' %}" class="link">
+                                Voir tous les statuts de connexion
+                            </a>
+                            <p class="help">Affiche le statut de connexion pour tous les clients.</p>
+                        </li>
+                    </ul>
+                    {# --- FIN NOUVEAU LIEN --- #}
+                </div>
+            </div>
+        </div>
+        {{ block.super }} {# Affiche le contenu original de la sidebar (actions récentes) #}
+    </div>
+{% endblock %}

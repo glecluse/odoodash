@@ -1,0 +1,39 @@
+    {% extends "admin/base.html" %}
+    {% load i18n %}
+
+    {# Surcharge le titre affiché dans l'onglet du navigateur et en haut de la page #}
+    {% block title %}{% translate 'Administration OdooDash' %}{% endblock %}
+
+    {# Surcharge le titre principal affiché dans l'en-tête de la page d'administration #}
+    {% block branding %}
+    <div id="site-name">
+        <a href="{% url 'admin:index' %}">{% translate 'Administration OdooDash' %}</a>
+    </div>
+    {% if user.is_anonymous %}
+      {% include "admin/color_theme_toggle.html" %}
+    {% endif %}
+    {% endblock %}
+
+    {# Optionnel : Surcharge le lien "Voir le site" pour qu'il pointe vers votre dashboard principal #}
+    {% block nav-global %}
+        {% if user.is_active and user.is_staff %}
+            <div id="user-tools">
+                {% translate 'Welcome,' %}
+                <strong>{% firstof user.get_short_name user.get_username %}</strong>.
+                {% block userlinks %}
+                    {% if site_url %}
+                        {# Lien vers le tableau de bord de l'application principale #}
+                        <a href="{% url 'core:dashboard' %}">{% translate 'Voir le tableau de bord' %}</a> /
+                    {% endif %}
+                    {% if user.has_usable_password %}
+                    <a href="{% url 'admin:password_change' %}">{% translate 'Change password' %}</a> /
+                    {% endif %}
+                    <form id="logout-form" method="post" action="{% url 'admin:logout' %}">
+                        {% csrf_token %}
+                        <button type="submit">{% translate 'Log out' %}</button>
+                    </form>
+                {% endblock %}
+            </div>
+        {% endif %}
+    {% endblock %}
+    

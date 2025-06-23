@@ -1,0 +1,283 @@
+{% load core_tags %} {# Charge les filtres personnalisés définis dans core_tags.py #}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ page_title|default:"Tableau de Bord" }} - OdooDash</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Styles de base */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7f6; /* bg-gray-100 */
+        }
+        /* Styles pour les tables */
+        thead th {
+            background-color: #eef2ff; /* indigo-50 */
+            color: #3730a3; /* indigo-800 */
+            font-weight: 600; /* semibold */
+            padding: 0.75rem 1rem; /* py-3 px-4 */
+            text-align: left;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            font-size: 0.75rem; /* text-xs */
+            border-bottom: 2px solid #c7d2fe; /* indigo-200 */
+            position: sticky; /* Rend l'en-tête fixe lors du scroll vertical */
+            top: 0;
+            z-index: 10; /* Assure que l'en-tête passe au-dessus du contenu */
+        }
+        tbody td {
+            padding: 0.75rem 1rem; /* py-3 px-4 */
+            border-bottom-width: 1px;
+            border-color: #e5e7eb; /* gray-200 */
+            color: #374151; /* gray-700 */
+            vertical-align: top; /* Aligne le contenu en haut des cellules */
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f8fafc; /* slate-50 */
+        }
+        tbody tr:hover {
+            background-color: #f0f9ff; /* sky-50 */
+        }
+        /* Style pour rendre la première colonne fixe lors du scroll horizontal */
+        .sticky-col {
+            position: sticky;
+            left: 0;
+            background-color: inherit; /* Hérite de la couleur de fond de la ligne */
+            z-index: 5;
+            border-right-width: 1px;
+            border-color: #e5e7eb;
+        }
+        /* Assure que le th de la colonne sticky est au-dessus et a le même fond que les autres th */
+        thead th.sticky-col {
+            background-color: #eef2ff; /* Assurer la même couleur de fond que les autres th */
+            z-index: 15;
+        }
+        .table-container {
+            max-height: calc(100vh - 380px); /* Ajusté pour plus de filtres */
+            overflow-y: auto; /* Scroll vertical pour la table */
+            border: 1px solid #e5e7eb; /* gray-200 */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06); /* shadow-md */
+        }
+        .indicator-value {
+            font-weight: 500;
+            color: #1f2937; /* gray-800 */
+        }
+        .client-link {
+            color: #4f46e5; /* indigo-600 */
+            font-weight: 600; /* semibold */
+        }
+        .client-link:hover {
+            color: #3730a3; /* indigo-800 */
+            text-decoration: underline;
+        }
+        select:focus, button:focus { /* Amélioration du focus pour l'accessibilité */
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            --tw-ring-color: #4f46e5; /* indigo-600 */
+            box-shadow: 0 0 0 2px var(--tw-ring-color);
+        }
+        .logout-button {
+            background: none!important;
+            border: none;
+            padding: 0!important;
+            color: #ef4444; /* text-red-500 */
+            text-decoration: none;
+            cursor: pointer;
+            font-weight: 500; /* medium */
+        }
+        .logout-button:hover {
+            color: #dc2626; /* text-red-700 */
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <header class="mb-10">
+        <div class="container mx-auto flex flex-col md:flex-row justify-between items-center py-5 px-2 md:px-0 border-b-2 border-gray-300">
+            <div class="flex items-center">
+                <img src="https://i0.wp.com/franchise-optitmome.com/wp-content/uploads/2023/10/logo-pavillon-des-entrepreneurs.png?fit=507%2C370&ssl=1"
+                     alt="Logo Le Pavillon Des Entreprises"
+                     class="h-12 md:h-16 mr-4"
+                     onerror="this.style.display='none'; this.onerror=null;">
+                <h1 class="text-3xl md:text-4xl font-bold text-indigo-700">
+                    Odoo<span class="text-gray-700">Dash</span>
+                </h1>
+            </div>
+
+            {% if user.is_authenticated %}
+                <div class="text-xs sm:text-sm text-gray-600 mt-3 md:mt-0 whitespace-nowrap">
+                    Connecté : <strong class="text-gray-800">{{ user.username }}</strong>
+                    {% if user_profile %}
+                        (<span class="font-medium text-indigo-600">{{ user_profile.get_role_display }}</span>)
+                    {% endif %}
+                    <form method="post" action="{% url 'logout' %}" style="display: inline; margin-left: 1rem;" class="ml-2 md:ml-4">
+                        {% csrf_token %}
+                        <button type="submit" class="logout-button">[Se déconnecter]</button>
+                    </form>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <main class="container mx-auto">
+        {% if user_profile is None and user.is_authenticated and not user.is_superuser %}
+            <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-6 shadow" role="alert">
+                <p class="font-bold">Erreur de Profil Utilisateur</p>
+                <p>Votre profil OdooDash n'est pas correctement configuré. Veuillez contacter un administrateur.</p>
+            </div>
+        {% endif %}
+
+        {# --- SECTION FILTRES --- #}
+        <form method="GET" action="{% url 'core:dashboard' %}" class="bg-white p-4 md:p-6 rounded-lg shadow-md mb-8">
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-end">
+                <div>
+                    <label for="collaborator_filter" class="block text-sm font-medium text-gray-700 mb-1">Collaborateur :</label>
+                    <select name="collaborator_filter" id="collaborator_filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm">
+                        <option value="">Tous</option>
+                        {% for collab_name in collaborator_choices %}
+                            <option value="{{ collab_name }}" {% if collab_name == selected_collaborator_name %}selected{% endif %}>
+                                {{ collab_name|format_collab_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="closing_date_filter" class="block text-sm font-medium text-gray-700 mb-1">Date Clôture Ann. :</label>
+                    <select name="closing_date_filter" id="closing_date_filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm">
+                        <option value="">Toutes</option>
+                        {% for date_val in closing_date_choices %}
+                            <option value="{{ date_val }}" {% if date_val == selected_closing_date %}selected{% endif %}>
+                                {{ date_val }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label for="category_filter" class="block text-sm font-medium text-gray-700 mb-1">Catégorie Indicateur :</label>
+                    <select name="category_filter" id="category_filter" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md shadow-sm">
+                        <option value="">Toutes les catégories</option>
+                        {% for category_name in category_choices %}
+                            <option value="{{ category_name }}" {% if category_name == selected_category %}selected{% endif %}>
+                                {{ category_name|title }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="sm:pt-5">
+                    <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                        Appliquer
+                    </button>
+                </div>
+            </div>
+        </form>
+        {# --- FIN SECTION FILTRES --- #}
+
+
+        {% if clients_list %}
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl md:text-2xl font-semibold text-gray-700">Derniers Indicateurs par Client</h2>
+                {% if latest_run_timestamp %}
+                    <p class="text-xs text-gray-500">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 inline-block mr-1 text-gray-400"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-13a.75.75 0 0 0-1.5 0v5c0 .414.336.75.75.75h4a.75.75 0 0 0 0-1.5h-3.25V5Z" clip-rule="evenodd" /></svg>
+                        Données du : {{ latest_run_timestamp|date:"d/m/Y à H:i:s" }}
+                    </p>
+                {% endif %}
+            </div>
+
+            <div class="table-container">
+                <table class="min-w-full bg-white">
+                    <thead>
+                        <tr>
+                            <th class="sticky-col">Client</th>
+                            {# Colonnes pour les indicateurs de données (filtrés par catégorie) #}
+                            {% for indicator_name in all_indicator_names %}
+                                <th class="whitespace-nowrap">{{ indicator_name|title }}</th>
+                            {% endfor %}
+                            {# Colonnes "Divers" - affichées conditionnellement #}
+                            {% if show_collaborator_column %}
+                                <th>Collaborateur Assigné</th>
+                            {% endif %}
+                            {% if show_extraction_date_column %}
+                                <th class="whitespace-nowrap">Date Extraction</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-200">
+                        {% for client in clients_list %}
+                            {% with indicators_for_this_client=client_indicators|get_item:client %}
+                                {% with indicators_dict=indicators_for_this_client|dict_from_list:'indicator_name' %}
+                                    <tr>
+                                        <td class="sticky-col">
+                                            <a href="{{ client.client_odoo_url }}" target="_blank" rel="noopener noreferrer" title="Ouvrir Odoo de {{ client.client_name }}" class="client-link">
+                                                {{ client.client_name }}
+                                            </a>
+                                        </td>
+                                        {# Cellules pour les indicateurs de données #}
+                                        {% for indicator_name in all_indicator_names %}
+                                            <td class="indicator-value">
+                                                {% with indicator=indicators_dict|get_item:indicator_name %}
+                                                    {{ indicator.indicator_value|default:"-" }}
+                                                {% endwith %}
+                                            </td>
+                                        {% endfor %}
+                                        {# Cellules pour les colonnes "Divers" - affichées conditionnellement #}
+                                        {% if indicators_for_this_client %} {# S'assurer qu'on a au moins un indicateur pour ce client pour extraire les infos méta #}
+                                            {% with first_indicator=indicators_for_this_client.0 %}
+                                                {% if show_collaborator_column %}
+                                                    <td>{{ first_indicator.assigned_collaborator_name|format_collab_name|default:"N/A" }}</td>
+                                                {% endif %}
+                                                {% if show_extraction_date_column %}
+                                                    <td class="whitespace-nowrap text-sm text-gray-500">{{ first_indicator.extraction_timestamp|date:"d/m/Y H:i"|default:"-" }}</td>
+                                                {% endif %}
+                                            {% endwith %}
+                                        {% else %}
+                                            {# Si ce client n'a aucun des indicateurs sélectionnés, mais que les colonnes Divers sont affichées #}
+                                            {% if show_collaborator_column %}<td>-</td>{% endif %}
+                                            {% if show_extraction_date_column %}<td>-</td>{% endif %}
+                                        {% endif %}
+                                    </tr>
+                                {% endwith %}
+                            {% endwith %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        {% else %}
+            <div class="bg-blue-50 border-l-4 border-blue-400 text-blue-700 p-6 rounded-md mt-6 shadow-md">
+                <div class="flex">
+                    <div class="py-1">
+                        <svg class="fill-current h-6 w-6 text-blue-500 mr-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M2.93 17.07A10 10 0 1 1 17.07 2.93 10 10 0 0 1 2.93 17.07zm12.73-1.41A8 8 0 1 0 4.34 4.34a8 8 0 0 0 11.32 11.32zM9 11V9h2v6H9v-4zm0-6h2v2H9V5z"/></svg>
+                    </div>
+                    <div>
+                        <p class="font-bold text-lg mb-1">Aucune Donnée à Afficher</p>
+                        <p class="text-sm">
+                            {% if selected_closing_date or selected_collaborator_name or selected_category %}
+                                Aucun indicateur ne correspond à vos critères de filtre pour la dernière extraction.
+                            {% elif user_role == 'collaborateur' %}
+                                Aucun indicateur n'a été trouvé pour les dossiers qui vous sont assignés pour la dernière extraction.
+                            {% elif user_role == 'admin' %}
+                                Aucun indicateur n'a encore été collecté pour la dernière extraction, ou aucun client n'est configuré. Veuillez vérifier la configuration et lancer le script d'extraction.
+                            {% else %}
+                                Aucun indicateur à afficher pour le moment.
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+    </main>
+
+    <footer class="text-center text-sm text-gray-500 mt-12 pb-4">
+        OdooDash &copy; {% now "Y" %} - LPDE {# Utilise le tag 'now' pour l'année courante #}
+    </footer>
+
+</body>
+</html>
